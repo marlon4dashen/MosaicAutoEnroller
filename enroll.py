@@ -8,16 +8,30 @@ import time
 import requests
 import logging
 from selenium.webdriver.common.by import By
+import argparse
 from requests_html import HTML
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s.%(msecs)03d %(levelname)-6s %(name)s :: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
 
 LOGIN_URL = "https://epprd.mcmaster.ca/psp/prepprd/?cmd=login"
 ENROLL_URL = "https://csprd.mcmaster.ca/psc/prcsprd/EMPLOYEE/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_CART.GBL?" \
              "Page=SSR_SSENRL_CART&Action=A&ACAD_CAREER=UGRD&EMPLID={STUDENTNUM}&INSTITUTION=MCMST&STRM={TERMNUM}"
-USERNAME = ""
-STUDENT_NUMBER = ""
-PASSWORD = ""
+
+parser = argparse.ArgumentParser(description="Mosaic Auto Enroller")
+parser.add_argument('-u', '--username', help='Mosaic Username', required=True)
+parser.add_argument('-p', '--password', help='Mosaic Password', required=True)
+parser.add_argument('-n', '--student_num', help="Student Number", required=True)
+parser.add_argument('-c', '--course_id', help="Course ID", required=True)
+parser.add_argument('-t', '--term', help="The term course is in", required=True)
+args = parser.parse_args()
+USERNAME = args.username
+STUDENT_NUMBER = args.student_num
+PASSWORD = args.password
+TERM = args.term
+COURSE_ID = args.course_id
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
 
@@ -30,7 +44,7 @@ def scraper(url):
 
 
 def login(url):
-    print("Logging in ...")
+    logger.info("Logging in ...")
     driver.get(url)
     un_input = driver.find_element(By.NAME, 'userid')
     pw_input = driver.find_element(By.NAME, 'pwd')
@@ -89,7 +103,7 @@ def add_to_cart(url, course_id, term):
                 continue
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//input[contains(@title, 'Next Item')]"))).click()
         time.sleep(1)
-        print("another success")
+        logger.info("Added lab/tut section")
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//td[text()='Class Preferences']")))
     #Collecting table
     course_table = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//table[contains(@dir, 'ltr')]")))
@@ -108,7 +122,6 @@ if __name__ == "__main__":
     # content = HTML(html=html_str)
     # user_input = content.find(".userid", first=True)
     # pw_input = content.find(".pwd", first=True)
-    TERM = "2022 Spring/Summer"
-    COURSE_ID = "1656"
+
     login(LOGIN_URL)
     print(add_to_cart(ENROLL_URL, COURSE_ID, TERM))
